@@ -1,0 +1,6 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+# ignore old code and data csv files from prior versions
+old_code_data/
