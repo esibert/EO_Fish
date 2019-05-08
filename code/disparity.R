@@ -10,9 +10,16 @@
 ##### 1. Select the distmat to run all of these calculations/figures/etc. on.
 ## Note that this whole script is *not* site-specific, and analyses are not saved as 596 or 689 until the end. 
 
-toothdistmat <- distmat.596
-ages.combined <- morphdat.combined.596$AgeID
-ages.all <- morphdat.all.596$AgeID
+### 596 ###
+# toothdistmat <- distmat.596
+# ages.combined <- morphdat.combined.596$AgeID
+# ages.all <- morphdat.all.596$AgeID
+
+### 689 ###
+# toothdistmat <- distmat.689
+# ages.combined <- morphdat.combined.689$AgeID
+# ages.all <- morphdat.all.689$AgeID
+
 
 ##### 2.  Calculate NMDS values for plotting 
 NMDS3 <- metaMDS(toothdistmat, k=3, try = 40)

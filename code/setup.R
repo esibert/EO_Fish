@@ -32,9 +32,10 @@ library(ichthyoliths)
 library(doParallel)
 library(viridis)
 library(vegan)
-# library(mark)
+library(RMark)
+library(Hmisc)
+
 # library(stringr)
-# library(Hmisc)
 
 
 ## In-house functions

@@ -372,3 +372,20 @@ rangechart3 <- function (x = NULL, counts = NULL, depths = NULL, sample.labels =
         return(colnames(counts))
     }
 }
+
+
+
+##### make.inp(x, filename, header=NULL) #####
+make.inp<-function(x, filename, header=NULL) {  #make input file for RMark, x is table sc$counts 
+    mat<-as.vector(x)
+    mat<-matrix(mat, nrow=length(x[1,]), ncol=length(x[,1]), byrow=T)
+    rownames(mat)<-colnames(x)
+    mat<-ifelse(mat>0, 1, 0)  #change to 1's and 0's
+    if(is.null(header)) header=filename
+    filefoo<-file(paste(filename, sep=''), 'w')
+    writeLines(paste('/*', header, '*/', sep=''), filefoo)
+    for(i in 1:length(mat[,1])) {
+        mm<-mat[i,]
+        writeLines(paste('/* ', rownames(mat)[i], ' */ ', paste(mm, sep='', collapse=''), ' 1;', sep=''), filefoo) }
+    close(filefoo)
+}
