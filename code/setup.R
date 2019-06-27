@@ -27,7 +27,6 @@
 ## Install stratigraph from binary
 # install.packages('../abandoned_package_binaries/stratigraph_0.66.tar.gz', repos = NULL)
 
-library(stratigraph)
 library(ichthyoliths)
 library(doParallel)
 library(viridis)
@@ -60,6 +59,8 @@ sites<-c('IODP1406', 'ODP1217', 'DSDP522', 'DSDP596', 'ODP748', 'ODP689', 'ODP88
 
 # moving average filter
 ma5<-c(1,1,1,1,1)/5
+ma3 <- c(1,1,1)/3
+ma4 <- c(1,1,1,1)/4
 
 ##### Read in and clean up datasets #####
 
@@ -72,7 +73,7 @@ iar.all<-subset(all_AR_data, Proxy=='IAR')
 ### 2. Morphotypes from DSDP Site 596
 
 ## call in and clean up dataset
-dat.596 <- read.csv('data/EO_fish_csv_Feb11.csv', header = TRUE)
+dat.596 <- read.csv('data/DSDP_596_EO_fish.csv', header = TRUE)
 morphdat.596 <- toothdat.cleanup(dat.596, sortby = 'age')
 
 # Combine pairs of samples for larger sample sizes. These are the unique Age values that are being combined 
@@ -95,28 +96,40 @@ rm(morphdat.596) #forces me to choose which morphdat (combined or all) to use fo
 ### 3. Morphotypes from ODP 689
 
 ## call in and clean up dataset
-# dat.689 <- read.csv('data/EO_fish_csv_Feb11.csv', header = TRUE)
-# morphdat.689 <- toothdat.cleanup(dat.689, sortby = 'age')
+dat.689 <- read.csv('data/ODP_689_EO_fish_csv.csv', header = TRUE)
+morphdat.689 <- dat.689[order(dat.689[,2]), ] 
 
-# # Combine pairs of samples for larger sample sizes. These are the unique Age values that are being combined 
-## These will *all* change for 689
-# c01 <- c(28.49, 28.74)
-# c02 <- c(29.44, 29.75)
-# c03 <- c(30.52, 30.80)
-# c04 <- c(32.42, 32.68)
-# c05 <- c(33.52, 33.78)
-# c06 <- c(35.09, 35.34)
-# c07 <- c(36.34, 36.59)
-# c08 <- c(38.99, 39.42)
-# combines.689 <- list(c01, c02, c03, c04, c05, c06, c07, c08)
-# rm(c01, c02, c03, c04, c05, c06, c07, c08) #clean up!
+AgeID.unique.689 <- unique(morphdat.689$AgeID)
+
+c01 <- AgeID.unique.689[1:10]
+c02 <- AgeID.unique.689[11:20]
+c03 <- AgeID.unique.689[21:30]
+c04 <- AgeID.unique.689[31:40]
+c05 <- AgeID.unique.689[41:50]
+c06 <- AgeID.unique.689[51:60]
+c07 <- AgeID.unique.689[61:70]
+c08 <- AgeID.unique.689[71:80]
+c09 <- AgeID.unique.689[81:90]
+c10 <- AgeID.unique.689[91:100]
+
+combines.689 <- list(c01, c02, c03, c04, c05, c06, c07, c08, c09,c10)
+rm(c01, c02, c03, c04, c05, c06, c07, c08, c09, c10) #clean up!
 
 morphdat.combined.689 <- combine.samples(morphdat = morphdat.689, combines = combines.689)
 morphdat.all.689 <- morphdat.689
 rm(morphdat.689)
 
 
+### 4. Sea Level and Temperature from Cramer 2011
+# A note on age models: These datasets are taken from Cramer et al 2011, tables T7 (0-9 Ma) and T4 (9.2-108 Ma)
+# https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2011JC007255 is the reference for this
 
+# There is a break in ages from 83.45 to 83.3 because of age model conversion between GTS 2004 (what Cramer reports) and GTS 2012 (what we are using in this study). Used ODSN Timescale converter http://www.odsn.de/odsn/services/conv_ts/conv_ts.html to convert ages. 
+
+temp_cramer <- read.csv('data/temp-cramer.csv', header = TRUE, check.names = TRUE)
+names(temp_cramer)[1] <- 'age.temp.cramer.2012'
+sealevel_cramer <- read.csv('data/sealevel-cramer.csv', header = TRUE)
+names(sealevel_cramer)[1] <- 'age.sealevel.cramer.2012'
 
 ##### Disparity calculations #####
 # ichthyolith disparity weights/traits for disparity analyses

@@ -3,7 +3,7 @@
 #           functions.R for EO-fish project             #
 #        Contains the functions used in the analyses    #
 #   Created: 5/6/2019                                   #
-#   Last updated: 5/6/2019                              #
+#   Last updated: 6/5/2019                              #
 #                                                       #
 #########################################################
 
@@ -369,7 +369,11 @@ rangechart3 <- function (x = NULL, counts = NULL, depths = NULL, sample.labels =
                horiz = legend.horiz, bg = legend.bg) }
     
     if(return.xaxis == TRUE) {
-        return(colnames(counts))
+        if(xaxis.labels == 'alphanum') {
+            return(taxa)}
+        else {
+            return(colnames(counts))
+        }
     }
 }
 
@@ -389,3 +393,239 @@ make.inp<-function(x, filename, header=NULL) {  #make input file for RMark, x is
         writeLines(paste('/* ', rownames(mat)[i], ' */ ', paste(mm, sep='', collapse=''), ' 1;', sep=''), filefoo) }
     close(filefoo)
 }
+
+# ##### rangechart #####
+# 
+# # Range chart runciton rewritten to *not* require stratigraph internal functions. This will be added to the ichthyoliths package at a later date. 
+# 
+# 
+# # 0. counts is a table of occurrances of each taxa (columns) by age (rows)
+# # 1. Grab ages and taxa from counts table as needed
+# # 2. reorder options: (will include categories at some point but not right now)
+# #       a) FAD (first occurrance datum) then LAD (fad.by.lad)
+# #       b) LAD (last occurrance datum) then FAD (lad.by.fad)
+# # 3. xaxis.labels = c('numbers', 'names', 'alphanum') and return.xaxis = c(TRUE, FALSE)
+# #       a) 'numeric' means that they will be numbered 1-n on the x-axis. 
+# #       b) 'names' means that the names of the types will be the x-axis labels
+# #       c) 'alphanum' means that the original taxa order is preserved, and the numbers on the x-axis refer to the original order of taxa in the counts matrix. 
+# #       NOTE: return.xaxis = TRUE will give a list of corresponding morphotype names for each x-axis numeric value. 
+# # 4. normalize.counts (true/false) - uses internal function to normalize the counts 
+# # 5. count.breaks = NULL; Input vector defining the 'breaks' for plotting numbers or normalized percentages of assemblages. 'default' value is count.breaks = c(0, 2, 5, 10, 100)
+# #       a) if normalize.counts is TRUE and count.breaks = 'default', the breaks are at percentage values 1-2%, 2-5%, 5-10%, and >10% (count.breaks = c(0, 2, 5, 10, 100))
+# #       b) if normalize.counts is FALSE and , the breaks are at 1-2, 2-5, 5-10, and 10+. (count.breaks = c(0,2,5,10,100))
+# #       NOTE: can take inputs of any length, doesn't have to be 4 bins. Percentages and counts are both given in whole integers; 
+# # 6. LINE Graphical Parameters notes: 
+# #       Line segments connecting points are llwd (width), llcol (color), and llty (line type)
+# #       Baseline (connecting x-axis with first point) are blwd (width), blcol (color), and blty (line type)
+# # 7. POINT Graphical Parameters notes
+# #       cols.vec is a vector of colors given for each point value or bin. Defaults to rainbow if not given
+# #       pch.points, col.points, can be single values or 'by.count' or 'by.category'. 
+# #           col.vec and pch.vec are inputs for the 'by.count' and 'by.category' options. 
+# #       cex.points can be single values
+# #       largesize is a scaling factor for making the points/plot larger.
+# # 8. tax.cat is a vector matching the taxa (in order of the counts table) to a category. Must be numeric.
+# # 9. LEGEND information: make your own legend after, placing it where you'd like, with the colors you'd like, etc... 
+# #       
+# 
+# 
+# # Note that if you just use the ages and taxa generated from the counts table, there's no worrying about reordering or mismatched ages. Just use the ages and taxa from the counts table...
+# 
+# rangechart <- function(counts, ages = NULL, taxa = NULL, tax.cat = NULL, reorder = NULL, 
+#                         normalize.counts = FALSE, count.breaks = c(0, 2, 5, 10, 100), 
+#                         cex.xaxis = 1, cex.yaxis = 1, yaxis.ticks = FALSE, 
+#                         llwd = 1, llcol = 'gray70', llty = 3, 
+#                         baselines = FALSE, blwd = 0.5, blcol = 'lightblue', blty = 3, 
+#                         cols.vec = NULL, col.points = 'by.count', 
+#                         pch.points = 16, pch.vec = NULL, 
+#                         cex.points = 1, largesize = 1, 
+#                         xaxis.labels = c('names', 'numeric', 'alphanum'), print.xaxis = FALSE, ...) {
+#     
+#     ##### set up the dataset #####
+#     # Ages should be rownames of the counts table, and in increasing order
+#     if(missing(ages)) {
+#         ages <- as.numeric(rownames(counts))
+#     }
+#     else {
+#         rownames(counts) <- ages
+#     }
+#     
+#     # if the ages are not in increasing order, sort them and the counts table to be so
+#     if(is.unsorted(ages) == TRUE) {
+#         age.increasing <- sort(ages, index.return = TRUE)$ix
+#         counts <- counts[age.increasing, ]
+#         ages <- as.numeric(rownames(counts))
+#     }
+#     
+#     # taxa should be column-names of the counts table, order doesn't matter. 
+#     if(missing(taxa)) {
+#         taxa <- as.character(colnames(counts))
+#     }
+#     else {
+#         colnames(counts) <- taxa
+#     }
+#     
+#     original.taxa <- taxa #useful for matching tax-cat later too. 
+#     
+#     
+#     # clear NA values, if any, by replacing with zeros
+#     if (sum(is.na(counts)) > 0) {
+#         warning(paste(sum(is.na(counts)), "missing values in count matrix replaced with zeros"))
+#         counts[is.na(counts)] <- 0
+#     }
+#     
+#     # FAD: First (oldest) occurance datum calls the maximum index (mapped to the ages values) 
+#     # of a non-zero count value for each taxa column in the counts matrix
+#     fad <- ages[apply(counts, 2, function(x) {max(which (x!=0))})] 
+#     
+#     # LAD: Last (youngest) occurance datum calls the minimum index (mapped to the ages values) 
+#     # of a non-zero count value for each taxa column in the counts matrix
+#     lad <- ages[apply(counts, 2, function(x) {min(which (x!=0))})] 
+#     
+#     
+#     ### Normalize the counts if they want to be normalized 
+#     if(normalize.counts == TRUE) {
+#         norm.row<-function(row) {
+#             row/sum(row)
+#         }
+#         norm.counts<-apply(counts, 1, norm.row)  #normalize the matrix by rows
+#         counts<-t(norm.counts)   #for some reason I have to transpose the output back to the normal "counts" form
+#         counts <- 100 * counts #make this a percentage instead of a decimal value. 
+#     }
+#     
+#     ### Group the counts into bins if you'd like them to be binned. 
+#     if(!is.null(count.breaks)) {
+#         count.breaks <- count.breaks
+#     }
+#     
+#     for(i in 1:length(count.breaks)-1) {
+#         counts[counts > count.breaks[i] & counts <= count.breaks[i+1] ] = i
+#     }
+#     
+#     ##### reorder counts #####
+#     if(!is.null(reorder)) {
+#         
+#         # fad.by.lad (origination)
+#         if(reorder == 'fad.by.lad') {
+#             # First reorder the counts by LAD and recalculate FAD
+#             reorder.vect <- sort(lad, decreasing = TRUE, index.return = TRUE)$ix #pulls index of order by fads
+#             counts <- counts[, reorder.vect]
+#             fad <- ages[apply(counts, 2, function(x) {max(which (x!=0))})] 
+#             
+#             # Next, reorder the counts by FAD
+#             reorder.vect <- sort(fad, decreasing = TRUE, index.return = TRUE)$ix #pulls index of order by fads
+#             counts <- counts[, reorder.vect]
+#             
+#         }
+#         
+#         # lad.by.fad (extinction)
+#         else if(reorder == 'lad.by.fad') {
+#             # First reorder the counts by FAD and recalculate LAD
+#             reorder.vect <- sort(fad, decreasing = TRUE, index.return = TRUE)$ix #pulls index of order by fads
+#             counts <- counts[, reorder.vect]
+#             lad <- ages[apply(counts, 2, function(x) {min(which (x!=0))})] 
+#             
+#             # Next, reorder the counts by LAD
+#             reorder.vect <- sort(lad, decreasing = TRUE, index.return = TRUE)$ix #pulls index of order by fads
+#             counts <- counts[, reorder.vect]
+#         }
+#     }
+#     
+#     
+#     ### re-generate 'taxa', 'ages', 'fad' and 'lad' and 'tax.cat' from the updated counts table
+#     
+#     taxa <- as.character(colnames(counts))
+#     ages <- as.numeric(rownames(counts))
+#     fad <- ages[apply(counts, 2, function(x) {max(which (x!=0))})] 
+#     lad <- ages[apply(counts, 2, function(x) {min(which (x!=0))})] 
+#     
+#     if(!is.null(tax.cat)) { tax.cat <- tax.cat[match(taxa, original.taxa)] }
+#     
+#     ##### set up the graphical parameters #####
+#     ## xaxis.labels
+#     if(missing(xaxis.labels)) { xaxis.labels <- 'names' }
+#     if(xaxis.labels == 'names') { xaxis.lab <- taxa }
+#     if(xaxis.labels == 'numeric') { xaxis.lab <- 1:length(taxa) }
+#     if(xaxis.labels == 'alphanum') { xaxis.lab <- match(taxa, original.taxa) }
+#     
+#     ## colors of points
+#     if(missing(cols.vec)) {cols.vec = 'gray'}
+#     
+#     if(cols.vec[1] == 'rainbow') {
+#         colors<-rainbow(max(counts), end=5/6) 
+#     }
+#     else if (cols.vec[1] == 'viridis') {
+#         colors <- viridis::viridis(max(counts))
+#     }
+#     else colors<-cols.vec
+#     
+#     ## sizes of points (and scale of the whole thing...)
+#     sizes<-seq(0,(max(counts)-1), 1)
+#     sizes<-((sizes/(max(sizes)/largesize)) + largesize)
+#     
+#     
+#     ##### Actually make the plot #####
+#     ### make blank plot with appropriate dimensions, suppress x- and y- axes
+#     plot(1:ncol(counts), ylim = c(max(ages), min(ages)), 
+#          type = "n", xaxt = "n", yaxt = "n", xlab = "", ylab = "Age (Ma)")
+#     
+#     ### add segments to the plot
+#     segments(1:ncol(counts), lad, 1:ncol(counts), fad, 
+#              lwd = llwd, col = llcol, lty = llty)
+#     
+#     if (baselines == TRUE) { 
+#         segments(1:ncol(counts), fad, 1:ncol(counts), rep(par()$usr[3], ncol(counts)), 
+#                  col = blcol, lty = blty, lwd = blwd) 
+#     } 
+#     
+#     ### Add points to the plot
+#     for (i in 1:ncol(counts)) {
+#         num.val<-c(counts[,i][counts[,i]>0])
+#         
+#         # point characters
+#         if (pch.points == 'by.count') {
+#             pts.pch<-num.val
+#         }
+#         else if (pch.points == 'by.category') {
+#             pts.pch <- pch.vec[tax.cat[i]] 
+#         }
+#         else { pts.pch<-pch.points }
+#         
+#         # point colors
+#         if (col.points == 'by.count') {
+#             pts.cols<-c(colors[num.val]) 
+#         }
+#         else if (col.points == 'by.category') {
+#             pts.cols <- colors[tax.cat[i]] 
+#         }
+#         else { pts.cols<-col.points }
+#         
+#         # point size
+#         if (cex.points == 'by.count') pts.cex<-c(sizes[num.val]) else pts.cex<-cex.points
+#         
+#         # point y-values
+#         plocs <- ages[(counts > 0)[, i]]
+#         
+#         #actually add the points
+#         points(rep(i, length(plocs)), plocs, cex=pts.cex, pch=pts.pch, col=pts.cols,
+#                ...)
+#     }
+#     
+#     ### add axes
+#     axis(1, at = 1:ncol(counts), cex.axis = cex.xaxis, labels = xaxis.lab, 
+#          las = 3)
+#     axis(2, las = 1, cex.axis = cex.yaxis)
+#     if(yaxis.ticks == TRUE) {axis(2, at = ages, labels = FALSE, tck = -0.01)} 
+#     
+#     
+#     ##### print taxa in list #####
+#     # this has to be the last thing that the function does, because R stops after a return value
+#     if(print.xaxis == TRUE) {
+#         if(xaxis.labels == 'alphanum') {
+#             return(original.taxa)
+#         } 
+#         else {
+#             return(taxa)
+#         }
+#     }
+#     
+# }

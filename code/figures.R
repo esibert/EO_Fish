@@ -4,210 +4,269 @@
 #               by the Eocene-Oligocene Transition"         #
 #                Sibert, Zill, Frigyik, Norris              #
 #                                                           #
-#       Compiled: 5/6/2019                                  #
-#       Last updated; 5/6/2019                              #
+#       Compiled: 6/3/2019                                  #
+#       Last updated; 6/3/2019                              #
 #############################################################
 
+library(stratigraph)
+library(ichthyoliths)
+library(doParallel)
+library(viridis)
+library(vegan)
+library(RMark)
+library(Hmisc)
+
+source('code/functions.R')
+
+load('eo_fish.RData')
+
+##### Figure 2: The Fish Tooth Accumulation Figure ##### 
+
+pdf(file = 'figures/Figure2_Fish.pdf', height = 7.5, width = 16, useDingbats = F)
+
+par(mfrow = c(1, 9), 
+    oma = c(8, 4, 4.5, 0.5) + 0.1,  #set outer margins for axis labels
+    mar = c(0, 0, 0, 0) + 0.1)  # set plot martins to be very squished together
+yaxis.age <- c(40, 28)
+axis.scale <- 0.77
+text.scale <- 1.2
+pt.scale <- 1.8
+iar.axis.text <- expression(paste('IAR (ich >38 ', mu, 'm/cm'^'2','/Myr)'))
+eo.col <- adjustcolor('lightskyblue', alpha.f = 0.3)
+
+# 1. 1406 
+sub <- subset(iar.all, Site == 'IODP1406', select = c('Value', 'Age'))
+sub <- sub[order(sub$Age),]
+plot(sub, type = 'o', pch = 16, col = 'brown', ylim = yaxis.age, cex = pt.scale, 
+     xlim = c(0, max(sub$Value)), 
+     bty = 'n', axes = FALSE, xlab = '', ylab = '')
+axis(1) # IAR values
+mtext (text = iar.axis.text, side = 1, line = 2.5, cex = axis.scale)
+axis(2) #age axis
+mtext(text = 'Age (Ma)', side = 2, line = 2.5, cex = axis.scale)
+text('IODP 1406', x = 8000, y = 40.2, cex = text.scale, font = 2)
+abline(h = 33.9, col = eo.col, lwd = 5)
+
+# 2. 886  
+sub <- subset(iar.all, Site == 'ODP886', select = c('Value', 'Age'))
+plot(sub, type = 'o', pch = 16, col = 'red', ylim = yaxis.age, cex = pt.scale, 
+     xlim = c(0, max(sub$Value)), 
+     bty = 'n', axes = FALSE, xlab = '', ylab = '')
+axis(3) # IAR values
+mtext (text = iar.axis.text, side = 3, line = 2.5, cex = axis.scale)
+text('ODP 886', x = 1200, y = 27.8, cex = text.scale, font = 2)
+abline(h = 33.9, col = eo.col, lwd = 5)
 
 
-##### Figure 1: Ichthyolith Accumulation rates (only) #####
+# 3. 1217  
+sub <- subset(iar.all, Site == 'ODP1217', select = c('Value', 'Age'))
+plot(sub, type = 'o', pch = 16, col = 'chocolate', ylim = yaxis.age, cex = pt.scale, 
+     xlim = c(0, max(sub$Value)), 
+     bty = 'n', axes = FALSE, xlab = '', ylab = '')
+axis(1) # IAR values
+mtext (text = iar.axis.text, side = 1, line = 2.5, cex = axis.scale)
+text('ODP 1217', x = 3000, y = 40.2, cex = text.scale, font = 2)
+abline(h = 33.9, col = eo.col, lwd = 5)
 
-## make sites vector with the appropriate order for the sites from N to S, for running the loop 
-sites2 <- c("IODP1406", "ODP886", "ODP1217",  "DSDP522",  "DSDP596", "ODP689",  "ODP748") 
-sites2.names <- c("Subarctic Atlantic (IODP 1406)", "North Pacific (ODP 886)", "Equatorial Pacific (ODP 1217)",  "South Atlantic (DSDP 522)",  "South Pacific (DSDP 596)", "Antarcic (ODP 689)",  "Antarctic (ODP 748)")
+# 4. 522  
+sub <- subset(iar.all, Site == 'DSDP522', select = c('Value', 'Age'))
+plot(sub, type = 'o', pch = 16, col = 'plum3', ylim = yaxis.age, cex = pt.scale, 
+     xlim = c(0, max(sub$Value)), 
+     bty = 'n', axes = FALSE, xlab = '', ylab = '')
+axis(3) # IAR values
+mtext (text = iar.axis.text, side = 3, line = 2.5, cex = axis.scale)
+text('DSDP 522', x = 6000, y = 27.8, cex = text.scale, font = 2)
+abline(h = 33.9, col = eo.col, lwd = 5)
 
-# not sure why I have a different age vector here but going with it for the moment... 
-xlim.ages2 <- c(28, 40.5)
+# 5. 596  
+sub <- subset(iar.all, Site == 'DSDP596', select = c('Value', 'Age'))
+plot(sub, type = 'o', pch = 16, col = 'mediumorchid4', ylim = yaxis.age, cex = pt.scale, 
+     xlim = c(0, max(sub$Value)), 
+     bty = 'n', axes = FALSE, xlab = '', ylab = '')
+axis(1) # IAR values
+mtext (text = iar.axis.text, side = 1, line = 2.5, cex = axis.scale)
+text('DSDP 596', x = 410, y = 40.2, cex = text.scale, font = 2)
+abline(h = 33.9, col = eo.col, lwd = 5)
 
-pdf('figures/fish_only_EOT.pdf', height = 10, width = 7, useDingbats = FALSE)
-par(mfrow = c(7,1))
-par(mar = c(2, 5, 1.5, 2))
-for(i in 1:length(sites2)) {
-    dat <- subset(iar.all, Site == sites2[i], select = c('Age', 'Value'))
-    plot(dat, pch=16, col='black', cex=1, bty = 'n', xlab = '', ylab = '', axes = F, xlim = xlim.ages2)
-    axis(2)
-    mtext(paste(sites2.names[i]), side = 3, line = 0, font = 2, cex = 0.9) 
-    mtext('IAR', side=2, line=3.2, cex=0.8)
-    mtext(expression(paste('ich/cm'^2,'/kyr')), side=2, line=1.8, cex=0.6)
-    lines(dat$Age, filter(dat$Value, ma5), lwd=3, col='black')
-}
-axis(1)
-box(bty = 'l')
-abline (v = 33.9)
+# 6. 689  
+sub <- subset(iar.all, Site == 'ODP689', select = c('Value', 'Age'))
+plot(sub, type = 'o', pch = 16, col = 'royalblue3', ylim = yaxis.age, cex = pt.scale, 
+     xlim = c(0, max(sub$Value)), 
+     bty = 'n', axes = FALSE, xlab = '', ylab = '')
+axis(3) # IAR values
+mtext (text = iar.axis.text, side = 3, line = 2.5, cex = axis.scale)
+text('ODP 689', x = 2700, y = 27.8, cex = text.scale, font = 2)
+abline(h = 33.9, col = eo.col, lwd = 5)
+
+# 7. 748  
+sub <- subset(iar.all, Site == 'ODP748', select = c('Value', 'Age'))
+plot(sub, type = 'o', pch = 16, col = 'dodgerblue', ylim = yaxis.age, cex = pt.scale, 
+     xlim = c(0, max(sub$Value)), 
+     bty = 'n', axes = FALSE, xlab = '', ylab = '')
+axis(1) # IAR values
+mtext (text = iar.axis.text, side = 1, line = 2.5, cex = axis.scale, font = 2)
+text('ODP 748', x = 400, y = 40.2, cex = text.scale)
+abline(h = 33.9, col = eo.col, lwd = 5)
+
+# 8. Deep ocean temperature
+plot(temp_cramer$temp.cramer, temp_cramer$age.temp.cramer.2012, 
+     type = 'l', lwd = 3, ylim = yaxis.age,
+     xlim = c(4, 11),
+     bty = 'n', axes = FALSE, xlab = '', ylab = '')
+axis (3)
+mtext (text = 'Deep Ocean Temp (C)', side = 3, line = 2.5, cex = axis.scale)
+abline(h = 33.9, col = eo.col, lwd = 5)
+
+# 9. Relative Sea Level
+plot(sealevel_cramer$sealevel.cramer, sealevel_cramer$age.sealevel.cramer.2012, 
+     type = 'l', lwd = 3, ylim = yaxis.age,
+     xlim = c(-10, 60),
+     bty = 'n', axes = FALSE, xlab = '', ylab = '')
+axis (1)
+mtext (text = 'Sea Level (m)', side = 1, line = 2.5, cex = axis.scale)
+abline(h = 33.9, col = eo.col, lwd = 5)
+
+
 dev.off()
 
 
 
-##### Figure 2: Orders of Magnitude IAR values #####
-
-#Variables for plotting and parameters
-fillvec<-c('blue', 'magenta', 'gray', 'red', 'green3', 'yellow', 'purple')
-outvec<-c('black', 'black', 'black', 'black', 'black', 'black', 'black')
-pchvec<-c(24, 22, 21, 25, 21, 23, 25)
-
-#plot
-pdf('figures/magnitudes_log.pdf', height=7.5, width=7.5, useDingbats = F)
-par(mfrow=c(1,1))
-par(mar=c(5.1, 4.1, 2.1, 3.1))
-plot(iar.all$Age, iar.all$Value, type='n', log='y', 
-     xlim=xlim.ages, ylim = c(50, max(iar.all$Value)), 
-     xlab='Age (Ma)', ylab='', 
-     cex=1.3, axes=F)
-axis(1)
-#setup log axis
-at.y <- outer(1:9, 10^(0:4))
-lab.y <- ifelse(log10(at.y) %% 1 == 0, at.y, NA)
-axis(2, at=at.y, labels=lab.y, las=1)
-abline(h=800, lty=2, lwd=2)
-abline(v=33.9, lty = 1, lwd = 6, col = 'lightblue')
-box()
-mtext('IAR (log scale)', side=2, line=3, cex=1)
-mtext(expression(paste('ich/cm'^2,'/kyr')), side=2.2, line=2, cex=0.8)
-
-# #add 5 pt moving averages (scaled 886)
-# for(i in 1:length(sites)) {
-#    lines(subset(iar.all, Site==sites[i])$Age, filter(subset(iar.all, Site==sites[i])$Scaled, ma5), 
-#       pch=pchvec[i], col=adjustcolor(fillvec[i], alpha.f=1), lwd=5)
-# }
-
-#add points
-for(i in 1:length(sites)) {
-    points(x = subset(iar.all, Site==sites[i])$Age, y = subset(iar.all, Site==sites[i])$Value, 
-           pch=pchvec[i], col=outvec[i], bg=fillvec[i], cex=1.3)
-}
-# legend('topright',legend=c('N. Atlantic', 'Eq. Pacific', 'S. Atlantic', 'S. Pacific', 'Antarctic 
-#    (Kerguelen)', 'Antarctic 
-#    (Maude)', 'N. Pacific'),
-#    col=outvec, pt.bg=fillvec, pch=pchvec, bg='white', ncol=2)
-legend('topright',legend=sites,col=outvec, pt.bg=fillvec, pch=pchvec, bg='white', ncol=2)
-dev.off()
-
-
-
-##### Figure 3: Range Chart for 596 #####
+##### Figure 3: Range Charts #####
 ### normalized range chart plot 
 
-## select dataset
+#### Parameters and code for *percentage* figures
+colors.vector <- viridis(5)
+colors.vector[1] <- 'gray70' 
+splits <- c(3, 6, 9, 12) #percentage splits 
+largesize <- 1
+
+
+############# Parameters and code for *counts* based figures
+splits <- c(1, 3, 5, 10) # Counts splits - use this set! 
+## define sizes for legend cex
+sizes<-c(0:length(splits)) 
+sizes<-((sizes/(max(sizes)/largesize)) + largesize) #evenly distributed betwen cex = largesize and cex = largesize*2
+
+### 689
+pdf(file='figures/RangeChart689_counts.pdf', height = 4, width = 10, useDingbats = FALSE)
+par(mar=c(5, 4, 2, 2))
+
+rangechart(counts.689, reorder = 'fad.by.lad', xaxis.labels = 'alphanum', print.xaxis = FALSE, 
+           yaxis.ticks = FALSE, normalize.counts = FALSE, count.breaks = c(0,splits), 
+           col.points = 'by.count', cols.vec = colors.vector,
+           pch.points = 16, cex.points = 'by.count', largesize = largesize, main = 'ODP Site 689')
+
+# Counts legend
+legend('bottomright', legend=c('1', '2-3', '4-5', '6-10', '11+'), pch=16, 
+       col=colors.vector, pt.cex=sizes, cex=0.8,
+       horiz = TRUE, bg = 'n', bty = 'n') 
+
+## Add EO line
+abline(h=33.9, col='gray')
+
+dev.off()
+
+### 596
+pdf(file='figures/RangeChart596_counts.pdf', height = 5, width = 10, useDingbats = FALSE)
+par(mar=c(5, 4, 2, 2))
+
+rangechart(counts.596, reorder = 'fad.by.lad', xaxis.labels = 'alphanum', print.xaxis = FALSE, 
+           yaxis.ticks = FALSE, normalize.counts = FALSE, count.breaks = c(0,splits),
+           col.points = 'by.count', cols.vec = colors.vector,
+           pch.points = 16, cex.points = 'by.count', largesize = largesize, main = 'DSDP Site 596')
+
+# Counts legend
+legend('bottomright', legend=c('1', '2-3', '4-5', '6-10', '11+'), pch=16, 
+       col=colors.vector, pt.cex=sizes, cex=0.8,
+       horiz = TRUE, bg = 'n', bty = 'n') 
+
+## Add EO line
+abline(h=33.9, col='gray')
+
+dev.off()
+
+##### Percentage-based figures #####
+
+## define legend values
+splits.legend<-paste(c(0,splits), '-', c(splits,100), '%', sep='')
+splits.legend[1]<-paste('<', splits[1], '%', sep='')
+splits.legend[length(splits.legend)] <- paste('>', splits[length(splits)], '%', sep='')
+
+## define sizes for legend cex
+sizes<-c(0:length(splits)) 
+sizes<-((sizes/(max(sizes)/largesize)) + largesize) #evenly distributed betwen cex = largesize and cex = largesize*2
+
+
+##### DSDP 596
 morphdat.596 <- morphdat.combined.596
 # morphdat.596 <- morphdat.all.596
+sub.596 <- data.frame(morphdat.596$AgeID, morphdat.596$Morphotype_Name)
+counts.596 <- table(sub.596, exclude = '')
 
-## make SC objects necessary for plotting
-sc.596<-build.strat.obj(morphdat.596)
-ad.596<-a.datums(sc.596, depths=sc.596$absolute.ages, increasing.down = TRUE)
+### Make the actual figure 
+pdf(file='figures/RangeChart596_cleaned.pdf', height = 5, width = 10, useDingbats = FALSE)
+par(mar=c(5, 4, 2, 2))
 
+## Make the chart
+rangechart(counts.596, reorder = 'fad.by.lad', xaxis.labels = 'alphanum', print.xaxis = FALSE, 
+            yaxis.ticks = FALSE, normalize.counts = TRUE, count.breaks = c(0,splits), #count.breaks = NULL, 
+            col.points = 'by.count', cols.vec = colors.vector,
+            pch.points = 16, cex.points = 'by.count', largesize = largesize, main = 'DSDP Site 596')
 
-## Make splits for plot, normalize the range chart for plotting
-splits<-c(3,6,9,12)
-sc.plot <- breaks.fn (sc.596, splits)
+## Add the legend
+legend('bottomright', legend=splits.legend, pch=16, 
+       col=colors.vector, pt.cex=sizes, cex=0.8,
+       horiz = TRUE, bg = 'n', bty = 'n') 
 
-## define colors
-cols.vec <- rev(viridis(5))
-cols.vec[1] <- 'gray70'
-
-## define legend input
-splits.legend<-paste(c(0,splits), '-', c(splits,100), '%', sep='')
-splits.legend[1]<-paste('<', splits[1], '%', sep='')
-splits.legend[length(splits.legend)] <- paste('>', splits[length(splits)], '%', sep='')
-
-## Make the actual figure
-pdf(file='figures/RangeChart596.pdf', height = 7, width = 10, useDingbats = FALSE)
-par(mar=c(12, 4, 2, 4))
-rangechart3(sc.plot, reorder='lad.by.fad', depths=sc.plot$absolute.ages, cex.xaxis=0.5, 
-            cex.yaxis=1, cex.points="by.count", llwd=1, llcol = 'lightgray', llty = 3,
-            col.points="by.count", colors.vec = cols.vec, xaxis.labels = 'names', 
-            #xaxis.labels = c('numbers', 'names', 'alphanum')
-            pch.points=16, baselines=FALSE, large.size=1, count.group=FALSE, legend.loc = 'bottomright', 
-            legend.values = splits.legend, legend.horiz = TRUE, return.xaxis = FALSE) 
+## Add EO line
 abline(h=33.9, col='gray')
+
 dev.off()
 
+## Get the number to type list in the console
+typelist.596 <- rangechart(counts.596, reorder = 'fad.by.lad', xaxis.labels = 'alphanum', print.xaxis = TRUE, 
+           yaxis.ticks = FALSE, normalize.counts = TRUE, count.breaks = c(0,splits), #count.breaks = NULL, 
+           col.points = 'by.count', cols.vec = colors.vector,
+           pch.points = 16, cex.points = 'by.count', largesize = largesize)
 
 
-
-##### Figure S1: Barium/Silica/IAR stack figure #####
-pdf('figures/eot_IAR_ba_si.pdf', height=10, width=7, useDingbats = F)
-
-    #set up window:
-    par(mfrow=c(7,1))
-    
-    # Make plots
-    plot.ba.si(all_data = all_AR_data, dataset='IODP1406', xlim.ages=xlim.ages, 
-               plottitle = 'Subarctic Atlantic IODP U1403', plottitle.loc = c(30.7, 9700), age.axis=F, 
-               #iar.ylim=c(0,2000),
-               plot.margins=c(0,5,1,8))
-    plot.ba.si(all_data = all_AR_data, dataset='ODP886', xlim.ages=xlim.ages, 
-               plottitle = 'North Pacific ODP 886', plottitle.loc = c(30.3, 1300), age.axis=F, 
-               use.scaled.IAR = FALSE, 
-               plot.margins=c(0,5,1,8))
-    plot.ba.si(all_data = all_AR_data, dataset='ODP1217', xlim.ages=xlim.ages, 
-               plottitle = 'Equatorial Pacific ODP 1217', plottitle.loc = c(30.7, 4000), 
-               si.units='Opal accumulation (g/cm2/myr)', ba.units='Barium accumulation (mg/cm2/kyr)', 
-               age.axis=F)
-    plot.ba.si(all_data = all_AR_data, dataset='DSDP522', xlim.ages=xlim.ages, 
-               plottitle = 'Subtropical Atlantic DSDP 522', plottitle.loc = c(30.9, 7600), 
-               si.units='Opal accumulation (g/cm2/myr)', 
-               age.axis=F)
-    plot.ba.si(all_data = all_AR_data, dataset='DSDP596', xlim.ages=xlim.ages, 
-               plottitle = 'Subtropical Pacific DSDP 596', plottitle.loc = c(30.9, 430), 
-               si.units='SiO2 accumulation (g/cm2/myr)', ba.units='Barium accumulation (mg/cm2/myr)', 
-               age.axis=F)
-    plot.ba.si(all_data = all_AR_data, dataset='ODP689', xlim.ages=xlim.ages, 
-               plottitle = 'Antarctic ODP 689', plottitle.loc = c(30, 2600), 
-               si.units='SiO2 accumulation (g/cm2/myr)', ba.units='Barium accumulation (mmol/cm2/myr)', 
-               age.axis=F)
-    plot.ba.si(all_data = all_AR_data, dataset='ODP748', xlim.ages=xlim.ages, 
-               plottitle = 'Antarctic ODP 748', plottitle.loc = c(30, 500), 
-               si.units='Si Accumulation (g/cm2/myr)',  
-               age.axis=T, 
-               plot.margins=c(4,5,0,8))
-    box(bty='l')
-    abline(v = 33.9)
-    #par(mar=c(4,5,0,8))
-    #plot(zachos$age_zachos, filter(zachos$O18_adj, ma5), type='l', xlim=xlim.ages, ylim=c(3,0.4), 
-    #   bty='l', xlab='', ylab='')
-    mtext('Age (Ma)', side=1, line=2)
-    #mtext(expression(paste(delta^18,'O')), side=2, line=2.2, font=2)
-    #text(30.3, 0.9, labels=expression(paste(delta^18,'O (Zachos et al 2008)')), font=2)
-    #close the PDF device
-dev.off()
-
-
-##### Figure S2: Morphometrics for 596 #####
-
-##### Figure: Range chart for 689 #####
+##### ODP Site 689
 ### normalized range chart plot 
 
 ## select dataset
-# morphdat.689 <- morphdat.combined.689
-# morphdat.689 <- morphdat.all.689
-
-## make SC objects necessary for plotting
-sc.689<-build.strat.obj(morphdat.689)
-ad.689<-a.datums(sc.689, depths=sc.689$absolute.ages, increasing.down = TRUE)
+morphdat.689 <- morphdat.combined.689
+# morphdat.596 <- morphdat.all.596
+sub.689 <- data.frame(morphdat.689$AgeID, morphdat.689$Morphotype_Name)
+counts.689 <- table(sub.689, exclude = '')
 
 
-## Make splits for plot, normalize the range chart for plotting
-splits<-c(3,6,9,12)
-sc.plot <- breaks.fn (sc.689, splits)
+### Make the actual figure 
+pdf(file='figures/RangeChart689_cleaned.pdf', height = 5, width = 10, useDingbats = FALSE)
+par(mar=c(5, 4, 2, 2))
 
-## define colors
-cols.vec <- rev(viridis(5))
-cols.vec[1] <- 'gray70'
+## Make the chart
+rangechart(counts.689, reorder = 'fad.by.lad', xaxis.labels = 'alphanum', print.xaxis = FALSE, 
+           yaxis.ticks = FALSE, normalize.counts = TRUE, count.breaks = c(0,splits), #count.breaks = NULL, 
+           col.points = 'by.count', cols.vec = colors.vector,
+           pch.points = 16, cex.points = 'by.count', largesize = largesize, main = 'ODP Site 689')
 
-## define legend input
-splits.legend<-paste(c(0,splits), '-', c(splits,100), '%', sep='')
-splits.legend[1]<-paste('<', splits[1], '%', sep='')
-splits.legend[length(splits.legend)] <- paste('>', splits[length(splits)], '%', sep='')
+## Add the legend
+legend('bottomright', legend=splits.legend, pch=16, 
+       col=colors.vector, pt.cex=sizes, cex=0.8,
+       horiz = TRUE, bg = 'n', bty = 'n') 
 
-## Make the actual figure
-pdf(file='figures/RangeChart689.pdf', height = 7, width = 10, useDingbats = FALSE)
-par(mar=c(12, 4, 2, 4))
-rangechart3(sc.plot, reorder='lad.by.fad', depths=sc.plot$absolute.ages, cex.xaxis=0.5, 
-            cex.yaxis=1, cex.points="by.count", llwd=1, llcol = 'lightgray', llty = 3,
-            col.points="by.count", colors.vec = cols.vec, xaxis.labels = 'names', 
-            #xaxis.labels = c('numbers', 'names', 'alphanum')
-            pch.points=16, baselines=FALSE, large.size=1, count.group=FALSE, legend.loc = 'bottomright', 
-            legend.values = splits.legend, legend.horiz = TRUE, return.xaxis = FALSE) 
+## Add EO line
 abline(h=33.9, col='gray')
+
 dev.off()
+
+
+
+## Get the number to type list in the console
+typelist.689 <- rangechart(counts.689, reorder = 'fad.by.lad', xaxis.labels = 'alphanum', print.xaxis = TRUE, 
+                       yaxis.ticks = FALSE, normalize.counts = TRUE, count.breaks = c(0,splits), #count.breaks = NULL, 
+                       col.points = 'by.count', cols.vec = colors.vector,
+                       pch.points = 16, cex.points = 'by.count', largesize = largesize)
+
+
 
