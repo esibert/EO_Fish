@@ -1,12 +1,17 @@
 #############################################################
 #               Setup Code for analysis of                  #
 #               Eocene/Oligocene Fish Teeth                 #
-#       For "Fish populations and diversity unaffected      #
-#               by the Eocene-Oligocene Transition"         #
-#                Sibert, Zill, Frigyik, Norris              #
+#       For "No state change in pelagic fish production     #
+#           and biodiversity during the Eocene-Oligocene    #
+#           Transition"                                     #
+#       by Elizabeth C. Sibert, Michelle E. Zill,           #
+#           Ella T. Frigyik, and Ricahrd Norris             #
+#                                                           #
+#       Code written and maintained by Elizabeth Sibert     #
+#           Contact: esibert@fas.harvard.edu                #
 #                                                           #
 #       Compiled: 5/6/2019                                  #
-#       Last updated; 5/6/2019                              #
+#       Last updated; 12/27/2019                            #
 #############################################################
 
 ## This file contains the 'read-in' for all datasets used in this manuscript: 
@@ -49,7 +54,7 @@ source('code/functions.R')
 # par(mfrow=c(1,1))
 # par(mar=c(5.1, 4.1, 4.1, 2.1))
 
-##### Plot variables used across figures #####
+##### Define variables used across figures #####
 
 # Define x-axis plot age constraints (for all figures)
 xlim.ages<-c(29,43)

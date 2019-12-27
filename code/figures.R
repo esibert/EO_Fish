@@ -8,7 +8,7 @@
 #       Last updated; 6/3/2019                              #
 #############################################################
 
-library(stratigraph)
+#library(stratigraph)
 library(ichthyoliths)
 library(doParallel)
 library(viridis)
@@ -132,9 +132,23 @@ dev.off()
 
 
 ##### Figure 3: Range Charts #####
-### normalized range chart plot 
 
-#### Parameters and code for *percentage* figures
+### Make the counts tables
+
+## 596
+morphdat.596 <- morphdat.combined.596
+# morphdat.596 <- morphdat.all.596
+sub.596 <- data.frame(morphdat.596$AgeID, morphdat.596$Morphotype_Name)
+counts.596 <- table(sub.596, exclude = '')
+
+## 689
+morphdat.689 <- morphdat.combined.689
+sub.689 <- data.frame(morphdat.689$AgeID, morphdat.689$Morphotype_Name)
+counts.689 <- table(sub.689, exclude = '')
+
+
+### normalized range chart plot 
+### Parameters and code for *percentage* figures
 colors.vector <- viridis(5)
 colors.vector[1] <- 'gray70' 
 splits <- c(3, 6, 9, 12) #percentage splits 
@@ -144,14 +158,18 @@ largesize <- 1
 ############# Parameters and code for *counts* based figures
 splits <- c(1, 3, 5, 10) # Counts splits - use this set! 
 ## define sizes for legend cex
+largesize <- 1
 sizes<-c(0:length(splits)) 
 sizes<-((sizes/(max(sizes)/largesize)) + largesize) #evenly distributed betwen cex = largesize and cex = largesize*2
+colors.vector <- viridis(5)
+colors.vector[1] <- 'gray70' 
+
 
 ### 689
 pdf(file='figures/RangeChart689_counts.pdf', height = 4, width = 10, useDingbats = FALSE)
 par(mar=c(5, 4, 2, 2))
 
-rangechart(counts.689, reorder = 'fad.by.lad', xaxis.labels = 'alphanum', print.xaxis = FALSE, 
+rangechart(counts.689, reorder = 'fad.by.lad', xaxis.labels = 'alphanum', print.xaxis = TRUE, 
            yaxis.ticks = FALSE, normalize.counts = FALSE, count.breaks = c(0,splits), 
            col.points = 'by.count', cols.vec = colors.vector,
            pch.points = 16, cex.points = 'by.count', largesize = largesize, main = 'ODP Site 689')

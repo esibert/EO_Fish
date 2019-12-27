@@ -1,12 +1,13 @@
 #################################################
 #                                               #
 #   Code for running Mark/Recapture analyses    #
-#               5/8/2019                        #
-#    Running all on 596 for now, will make      #
-#         new code for 689 when needed          #
-#                                               #
+#       Cretaed: 5/8/2019                       #
+#       Updaed 12/27/2019                       #
 #################################################
 
+library(RMark)
+library(Hmisc)
+library(vegan)
 
 ##### 1. Setup and select datasets #####
 ## Set MarkPath
@@ -19,30 +20,31 @@ setwd('..') # resets the working directory to the main folder for later
 ## Select dataset
 morphdat.596 <- morphdat.combined.596
 # morphdat.596 <- morphdat.all.596
+morphdat.689 <- morphdat.combined.689
 
 ## make SC objects necessary for plotting
-sc<-build.strat.obj(morphdat.596)
+# sc<-build.strat.obj(morphdat.596)
 
 ##### 2. Set up MARK files #####
 # sample size per time bin
-samplesize<-rev(as.vector(apply(sc$counts, 1, sum))) #number of teeth considered in each time bin, oldest to youngest for MARK to work
+samplesize<-rev(as.vector(apply(counts.689, 1, sum))) #number of teeth considered in each time bin, oldest to youngest for MARK to work
 
 #time intervals between time bins and make new ages vector
 dt.rev <- c()
-for (i in 1:length(sc$absolute.ages)-1) {
-    ages <- rev(sc$absolute.ages)
+for (i in 1:length(age.689)-1) {
+    ages <- rev(age.689)
     dt <- ages[i] - ages[i+1]
     dt.rev <- c(dt.rev, dt)
 }
 
 #set up the sample set for making .inp file
-range.counts<-sc$counts #order by default is young to old
+range.counts<-counts.689 #order by default is young to old
 range.counts.rev<-range.counts[length(range.counts[,1]):1,] #reverse it so that order is old to young
 
 # make .inp file
-make.inp(x=range.counts.rev, filename='ranges_596.inp', header='ages old to young, full dataset, 1- age points')
+make.inp(x=range.counts.rev, filename='ranges_689.inp', header='ages old to young, full dataset, 1- age points')
 # call in .inp file
-rangesrev<-convert.inp('ranges_596')
+rangesrev<-convert.inp('ranges_689')
 # cleanup
 rm(range.counts, range.counts.rev)
 
@@ -104,7 +106,7 @@ for (i in 1:(length(ages)-1)) {
 }
 
 ### Plot model average values with "dropped estimates" 
-errbar(x=ages.int, y=pr.ext$estimates$estimate, yplus = pr.ext$estimates$ucl, yminus = pr.ext$estimates$lcl, xlim = c(42, 28), ylim = c(0, 0.1), 
+errbar(x=ages.int, y=pr.ext$estimates$estimate, yplus = pr.ext$estimates$ucl, yminus = pr.ext$estimates$lcl, xlim = c(42, 28), ylim = c(0, 0.15), 
        type = 'o', col = 'red', errbar.col = 'red', pch = 16, ylab = 'Estimate', xlab = 'Age (Ma)')
 errbar(x=ages.int, y=pr.orig$estimates$estimate, yplus = pr.orig$estimates$ucl, yminus = pr.orig$estimates$lcl, xlim = c(42,28),
        type = 'o', col = 'blue', errbar.col = 'blue', pch = 16, ylab = '', add = "TRUE")
@@ -146,7 +148,6 @@ legend('topleft', legend = c('Origination', 'Extinction'), col = c('blue', 'red'
 
 
 
-
 ### Plot only the best-fit model
 model.to.plot <- Pradrec$Phi.dot.p.samplesize.f.dot
 
@@ -169,3 +170,63 @@ par(new = TRUE)
 errbar(x = ages.int, y = pr.p.bestfit$estimate, yplus = pr.p.bestfit$ucl, yminus = pr.p.bestfit$lcl, xlim = c(42, 28),
     type = 'o', col = 'black', errbar.col = 'black', pch = 16, ylab = '', axes = FALSE)
 axis(4)
+
+##### Plot 689 and 596 side-by-side #####
+par(mfrow = c(1,2))
+## Select 596
+Pradrec <- Pradrec.596
+pradrec.avg <- model.average(Pradrec, vcv = TRUE)
+# Extinction estimates - inverse of Phi
+pr.ext <- model.average(Pradrec, "Phi", vcv = TRUE)
+pr.ext$estimates$estimate <- 1-pr.ext$estimates$estimate
+pr.ext$estimates$lcl <- 1-pr.ext$estimates$lcl
+pr.ext$estimates$ucl <- 1-pr.ext$estimates$ucl
+names(pr.ext$estimates)[c(4, 5)] <- c('ucl', 'lcl')
+# origination estimates - f
+pr.orig <- model.average(Pradrec, "f", vcv = TRUE)
+pr.p <- model.average(Pradrec, 'p', vcv = TRUE)
+# calculate average ages for plotting values between time points
+ages.int <- c()
+for (i in 1:(length(age.596)-1)) {
+    avg <- mean(c(age.596[i], age.596[i+1]))
+    ages.int <- c(ages.int, avg)
+}
+### Plot model average values with "dropped estimates" 
+errbar(x=ages.int, y=pr.ext$estimates$estimate, yplus = pr.ext$estimates$ucl, yminus = pr.ext$estimates$lcl, xlim = c(42, 28), ylim = c(0, 0.15), 
+       type = 'o', col = 'red', errbar.col = 'red', pch = 16, ylab = 'Estimate', xlab = 'Age (Ma)')
+errbar(x=ages.int, y=pr.orig$estimates$estimate, yplus = pr.orig$estimates$ucl, yminus = pr.orig$estimates$lcl, xlim = c(42,28),
+       type = 'o', col = 'blue', errbar.col = 'blue', pch = 16, ylab = '', add = "TRUE")
+abline (v = 33.9, col = 'gray')
+legend('topleft', legend = c('Origination', 'Extinction'), col = c('blue', 'red'), pch = 16, lty = 1)
+title("a. DSDP Site 596 (S. Pacific))")
+
+## Select 689
+Pradrec <- Pradrec.689
+pradrec.avg <- model.average(Pradrec, vcv = TRUE)
+# Extinction estimates - inverse of Phi
+pr.ext <- model.average(Pradrec, "Phi", vcv = TRUE)
+pr.ext$estimates$estimate <- 1-pr.ext$estimates$estimate
+pr.ext$estimates$lcl <- 1-pr.ext$estimates$lcl
+pr.ext$estimates$ucl <- 1-pr.ext$estimates$ucl
+names(pr.ext$estimates)[c(4, 5)] <- c('ucl', 'lcl')
+# origination estimates - f
+pr.orig <- model.average(Pradrec, "f", vcv = TRUE)
+pr.p <- model.average(Pradrec, 'p', vcv = TRUE)
+# calculate average ages for plotting values between time points
+ages.int <- c()
+for (i in 1:(length(age.689)-1)) {
+    avg <- mean(c(age.689[i], age.689[i+1]))
+    ages.int <- c(ages.int, avg)
+}
+### Plot model average values with "dropped estimates" 
+errbar(x=ages.int, y=pr.ext$estimates$estimate, yplus = pr.ext$estimates$ucl, yminus = pr.ext$estimates$lcl, xlim = c(42, 28), ylim = c(0, 0.15), 
+       type = 'o', col = 'red', errbar.col = 'red', pch = 16, ylab = 'Estimate', xlab = 'Age (Ma)')
+errbar(x=ages.int, y=pr.orig$estimates$estimate, yplus = pr.orig$estimates$ucl, yminus = pr.orig$estimates$lcl, xlim = c(42,28),
+       type = 'o', col = 'blue', errbar.col = 'blue', pch = 16, ylab = '', add = "TRUE")
+abline (v = 33.9, col = 'gray')
+legend('topleft', legend = c('Origination', 'Extinction'), col = c('blue', 'red'), pch = 16, lty = 1)
+title("b. ODP Site 689 (Antarctic)")
+
+
+
+
